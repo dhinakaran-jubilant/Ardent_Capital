@@ -5,7 +5,12 @@ import logoImage from '../assets/logo.png';
 const Layout = ({ children, user, onLogout }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const activeTab = location.pathname.includes('/users') ? 'users' : 'portfolio';
+    let activeTab = 'portfolio';
+    if (location.pathname.includes('/users')) {
+        activeTab = 'users';
+    } else if (location.pathname.includes('/collection-efficiency')) {
+        activeTab = 'collection';
+    }
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [isDark, setIsDark] = useState(() => {
         return localStorage.getItem('isDark') === 'true' || true; // Default to dark for premium feel
@@ -66,6 +71,16 @@ const Layout = ({ children, user, onLogout }) => {
                         >
                             <span className="material-symbols-outlined">insights</span>
                             <span className="text-[12px] font-black uppercase tracking-[0.1em]">Portfolio Cuts</span>
+                        </div>
+
+                        <div
+                            onClick={() => navigate('/collection-efficiency')}
+                            className={`flex items-center gap-3 px-6 h-14 rounded-2xl transition-all cursor-pointer ${activeTab === 'collection'
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                                : 'text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/30'}`}
+                        >
+                            <span className="material-symbols-outlined">analytics</span>
+                            <span className="text-[12px] font-black uppercase tracking-[0.1em]">Collection Effi</span>
                         </div>
 
 

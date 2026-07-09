@@ -5,6 +5,7 @@ import Home from './components/Home';
 import Login from './components/Login';
 import Users from './components/Users';
 import Layout from './components/Layout';
+import CollectionEfficiency from './components/CollectionEfficiency';
 
 // Setup global axios request interceptor for JWT
 axios.interceptors.request.use(
@@ -96,6 +97,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/portfolio-cuts" replace />} />
         <Route path="/portfolio-cuts" element={<Home user={user} onLogout={handleLogout} />} />
+        <Route path="/collection-efficiency" element={<CollectionEfficiency user={user} onLogout={handleLogout} />} />
         {user.role === 'admin' && (
           <Route path="/users" element={<Users user={user} onLogout={handleLogout} />} />
         )}

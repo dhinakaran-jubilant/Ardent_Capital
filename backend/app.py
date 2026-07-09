@@ -10,7 +10,7 @@ import jwt
 from functools import wraps
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from utils.summary_generator import generate_branch_summary
+from utils.summary_generator import generate_branch_summary, generate_collection_efficiency
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super-secret-key-change-in-prod'
@@ -60,7 +60,7 @@ def admin_required(f):
 DB_HOST = "localhost"
 DB_PORT = "5432"
 DB_USER = "postgres"
-DB_PASS = "1234" # User might need to change this if password auth fails
+DB_PASS = "Ardent@123" # User might need to change this if password auth fails
 DB_NAME = "ardent_db"
 
 # Create connection pool
@@ -215,6 +215,53 @@ def upload_file(current_user):
             excel_output,
             as_attachment=True,
             download_name="portfolio_cuts.xlsx",
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/upload/collection-efficiency', methods=['POST'])
+@token_required
+def upload_collection_efficiency(current_user):
+    if 'lcc_file' not in request.files:
+        return jsonify({"error": "LCC file is required"}), 400
+        
+    lcc_file = request.files['lcc_file']
+    
+    if lcc_file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+        
+    if not (lcc_file.filename.endswith('.xlsx') or lcc_file.filename.endswith('.xls')):
+        return jsonify({"error": "Only Excel files (.xlsx, .xls) are supported"}), 400
+    
+    username = request.form.get('username', 'System Admin').strip()
+    start_time = time.time()
+
+    try:
+        excel_output = generate_collection_efficiency(lcc_file)
+        processing_time = round(time.time() - start_time, 2)
+        
+        # Save to database history
+        if connection_pool:
+            conn = connection_pool.getconn()
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        INSERT INTO upload_history (username, processing_time, lcc_filename, par_filename)
+                        VALUES (%s, %s, %s, %s)
+                    """, (username, processing_time, secure_filename(lcc_file.filename), 'N/A'))
+                    conn.commit()
+            except Exception as e:
+                conn.rollback()
+                raise e
+            finally:
+                connection_pool.putconn(conn)
+
+        return send_file(
+            excel_output,
+            as_attachment=True,
+            download_name="collection_efficiency.xlsx",
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
     except Exception as e:
@@ -534,54 +581,6 @@ def delete_user(user_id):
             connection_pool.putconn(conn)
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
-
-# --- History API Route ---
-
-@app.route('/api/history/', methods=['GET'])
-@token_required
-def get_history(current_user):
-    try:
-        username = request.args.get('username', '').strip()
-        emp_code = request.args.get('employee_code', '').strip()
-        role = request.args.get('role', 'user').strip()
-
-        if not connection_pool:
-            return jsonify({'error': 'Database connection error'}), 500
-
-        conn = connection_pool.getconn()
-        try:
-            with conn.cursor() as cur:
-                if role == 'admin':
-                    cur.execute("""
-                        SELECT id, username, upload_time, processing_time, lcc_filename, par_filename 
-                        FROM upload_history 
-                        ORDER BY upload_time DESC
-                    """)
-                else:
-                    cur.execute("""
-                        SELECT id, username, upload_time, processing_time, lcc_filename, par_filename 
-                        FROM upload_history 
-                        WHERE LOWER(username) = LOWER(%s) OR LOWER(username) = LOWER(%s)
-                        ORDER BY upload_time DESC
-                    """, (username, emp_code))
-                
-                history = cur.fetchall()
-        finally:
-            connection_pool.putconn(conn)
-
-        history_list = []
-        for h in history:
-            history_list.append({
-                'id': h[0],
-                'username': h[1],
-                'upload_time': h[2].strftime('%Y-%m-%dT%H:%M:%SZ') if h[2] else None,
-                'processing_time': h[3],
-                'lcc_filename': h[4],
-                'par_filename': h[5]
-            })
-        return jsonify(history_list), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True, port=4000, ssl_context=('cert.pem', 'key.pem'))
