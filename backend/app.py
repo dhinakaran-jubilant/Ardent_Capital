@@ -583,4 +583,4 @@ def delete_user(user_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True, port=4000, ssl_context=('cert.pem', 'key.pem'))
+    app.run(host='0.0.0.0', debug=True, port=4003, ssl_context=('cert.pem', 'key.pem'))

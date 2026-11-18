@@ -16,12 +16,12 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'https://127.0.0.1:4000',
+        target: 'https://127.0.0.1:4003',
         secure: false, // Don't verify self-signed cert on the backend
         changeOrigin: true
       },
       '/upload': {
-        target: 'https://127.0.0.1:4000',
+        target: 'https://127.0.0.1:4003',
         secure: false,
         changeOrigin: true
       }
